@@ -1,0 +1,15 @@
+/* Menu items */
+"menu.new_proxy" = "新建代理";
+"menu.running_instances" = "运行中的实例";
+"menu.no_instances" = "没有运行中的实例";
+"menu.quit" = "退出";
+
+/* Add Proxy Sheet */
+"sheet.title" = "新建 iproxy 实例";
+"sheet.source_port" = "源端口（设备）";
+"sheet.source_placeholder" = "例如 2222";
+"sheet.destination_port" = "目标端口（本地）";
+"sheet.destination_placeholder" = "例如 2222";
+"sheet.use_random_port" = "使用随机目标端口";
+"sheet.cancel" = "取消";
+"sheet.create" = "创建";

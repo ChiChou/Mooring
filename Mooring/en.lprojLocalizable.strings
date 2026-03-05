@@ -1,0 +1,15 @@
+/* Menu items */
+"menu.new_proxy" = "New iproxy";
+"menu.running_instances" = "Running Instances";
+"menu.no_instances" = "No iproxy instances";
+"menu.quit" = "Quit";
+
+/* Add Proxy Sheet */
+"sheet.title" = "New iproxy Instance";
+"sheet.source_port" = "Source (device)";
+"sheet.source_placeholder" = "e.g. 2222";
+"sheet.destination_port" = "Destination (local)";
+"sheet.destination_placeholder" = "e.g. 2222";
+"sheet.use_random_port" = "Use random destination port";
+"sheet.cancel" = "Cancel";
+"sheet.create" = "Create";
