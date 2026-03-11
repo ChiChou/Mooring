@@ -34,40 +34,129 @@ extension View {
 
 struct MenuBarView: View {
     @EnvironmentObject var proxyManager: IProxyManager
-    @Environment(\.openWindow) private var openWindow
+    @State private var showCreateForm = false
+    @State private var sourcePort: String = ""
+    @State private var destinationPort: String = ""
+    @State private var useRandomPort: Bool = false
+    @State private var userEditedDestination = false
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case source
+        case destination
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Button {
-                // Close the menu bar extra popover
-                NSApp.windows.first { $0.level == .popUpMenu }?.close()
-                
-                // Small delay to ensure menu closes before activating
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
-                    NSApp.activate(ignoringOtherApps: true)
-                    openWindow(id: "add-proxy")
+            if !showCreateForm {
+                Button {
+                    showCreateForm = true
+                    focusedField = .source
+                } label: {
+                    HStack {
+                        Image(systemName: "plus.circle.fill")
+                        Text("New iproxy")
+                        Spacer()
+                        Text("⌘N")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .menuItemStyle()
+                }
+                .buttonStyle(.plain)
+                .keyboardShortcut("n", modifiers: .command)
+                .padding(.top, 6)
+            } else {
+                // Inline create form
+                VStack(spacing: 12) {
+                    HStack {
+                        Text("New iproxy Instance")
+                            .font(.headline)
+                        Spacer()
+                        Button {
+                            showCreateForm = false
+                            resetForm()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    }
                     
-                    // Focus the window after opening
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                        if let window = NSApp.windows.first(where: { $0.identifier?.rawValue == "add-proxy" }) {
-                            window.makeKeyAndOrderFront(nil)
+                    HStack(spacing: 8) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Source (device)")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            TextField("e.g. 2222", text: $sourcePort)
+                                .textFieldStyle(.roundedBorder)
+                                .focused($focusedField, equals: .source)
+                                .onChange(of: sourcePort) { _, newValue in
+                                    if !userEditedDestination && !useRandomPort {
+                                        destinationPort = newValue
+                                    }
+                                }
+                        }
+                        
+                        if !useRandomPort {
+                            Image(systemName: "arrow.right")
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 18)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Destination (local)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                TextField("e.g. 2222", text: $destinationPort)
+                                    .textFieldStyle(.roundedBorder)
+                                    .focused($focusedField, equals: .destination)
+                                    .onChange(of: destinationPort) { _, newValue in
+                                        if newValue != sourcePort {
+                                            userEditedDestination = true
+                                        }
+                                    }
+                            }
                         }
                     }
-                }
-            } label: {
-                HStack {
-                    Image(systemName: "plus.circle.fill")
-                    Text("New iproxy")
-                    Spacer()
-                    Text("⌘N")
+                    
+                    Toggle("Use random destination port", isOn: $useRandomPort)
+                        .toggleStyle(.checkbox)
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                    
+                    HStack(spacing: 8) {
+                        Button("Cancel") {
+                            showCreateForm = false
+                            resetForm()
+                        }
+                        .keyboardShortcut(.cancelAction)
+                        
+                        Spacer()
+                        
+                        Button("Create") {
+                            guard let src = Int(sourcePort), src > 0, src <= 65535 else { return }
+                            
+                            if useRandomPort {
+                                proxyManager.createWithRandomPort(sourcePort: src)
+                            } else {
+                                guard let dst = Int(destinationPort), dst > 0, dst <= 65535 else { return }
+                                proxyManager.create(sourcePort: src, destinationPort: dst)
+                            }
+                            
+                            showCreateForm = false
+                            resetForm()
+                        }
+                        .keyboardShortcut(.defaultAction)
+                        .disabled(sourcePort.isEmpty || (!useRandomPort && destinationPort.isEmpty))
+                    }
                 }
-                .menuItemStyle()
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color(nsColor: .controlBackgroundColor))
+                )
+                .padding(.horizontal, 8)
+                .padding(.top, 6)
             }
-            .buttonStyle(.plain)
-            .keyboardShortcut("n", modifiers: .command)
-            .padding(.top, 6)
 
             Divider().padding(.horizontal, 8)
 
@@ -127,6 +216,13 @@ struct MenuBarView: View {
             .padding(.bottom, 6)
         }
         .frame(width: 260)
+    }
+    
+    private func resetForm() {
+        sourcePort = ""
+        destinationPort = ""
+        useRandomPort = false
+        userEditedDestination = false
     }
 }
 
