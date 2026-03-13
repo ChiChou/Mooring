@@ -192,7 +192,8 @@ struct MenuBarView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                    .menuItemStyle()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
                 }
             }
 
