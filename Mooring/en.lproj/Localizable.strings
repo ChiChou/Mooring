@@ -2,15 +2,15 @@
 "menu.new_proxy" = "New iproxy";
 "menu.running_instances" = "Running Instances";
 "menu.no_instances" = "No iproxy instances";
+"menu.any_device" = "Any Device";
 "menu.quit" = "Quit";
 
 /* Add Proxy Sheet */
 "sheet.title" = "New iproxy Instance";
-"sheet.source_port" = "Source (device)";
-"sheet.source_placeholder" = "e.g. 2222";
-"sheet.destination_port" = "Destination (local)";
-"sheet.destination_placeholder" = "e.g. 2222";
-"sheet.use_random_port" = "Use random destination port";
+"sheet.device_port" = "Device Port";
+"sheet.port_placeholder" = "e.g. 2222";
+"sheet.local_port" = "Local Port";
+"sheet.use_random_port" = "Use random local port";
 "sheet.udid" = "UDID (optional)";
 "sheet.udid_placeholder" = "All devices";
 "sheet.udid_no_devices" = "No devices found";

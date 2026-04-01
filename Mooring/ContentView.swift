@@ -106,7 +106,7 @@ struct CreateProxyForm: View {
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Text("New iproxy Instance")
+                Text("sheet.title")
                     .font(.headline)
                 Spacer()
                 Button {
@@ -120,10 +120,10 @@ struct CreateProxyForm: View {
 
             HStack(spacing: 8) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Device Port")
+                    Text("sheet.device_port")
                         .font(.caption)
                         .foregroundStyle(.secondary)
-                    TextField("e.g. 2222", text: $devicePort)
+                    TextField(String(localized: "sheet.port_placeholder"), text: $devicePort)
                         .textFieldStyle(.roundedBorder)
                         .focused($focusedField, equals: .devicePort)
                         .onChange(of: devicePort) { _, newValue in
@@ -139,10 +139,10 @@ struct CreateProxyForm: View {
                         .padding(.top, 18)
 
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Local Port")
+                        Text("sheet.local_port")
                             .font(.caption)
                             .foregroundStyle(.secondary)
-                        TextField("e.g. 2222", text: $localPort)
+                        TextField(String(localized: "sheet.port_placeholder"), text: $localPort)
                             .textFieldStyle(.roundedBorder)
                             .focused($focusedField, equals: .localPort)
                             .onChange(of: localPort) { _, newValue in
@@ -154,19 +154,19 @@ struct CreateProxyForm: View {
                 }
             }
 
-            Toggle("Use random local port", isOn: $useRandomPort)
+            Toggle("sheet.use_random_port", isOn: $useRandomPort)
                 .toggleStyle(.checkbox)
                 .font(.caption)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("UDID (optional)")
+                Text("sheet.udid")
                     .font(.caption)
                     .foregroundStyle(.secondary)
-                ComboBox(text: $udid, items: proxyManager.availableUDIDs, placeholder: "All devices")
+                ComboBox(text: $udid, items: proxyManager.availableUDIDs, placeholder: String(localized: "sheet.udid_placeholder"))
                     .frame(height: 24)
             }
 
-            Picker("Connection", selection: $connectionType) {
+            Picker("sheet.connection", selection: $connectionType) {
                 ForEach(ConnectionType.allCases) { type in
                     Text(type.rawValue).tag(type)
                 }
@@ -174,14 +174,14 @@ struct CreateProxyForm: View {
             .pickerStyle(.segmented)
 
             HStack(spacing: 8) {
-                Button("Cancel") {
+                Button("sheet.cancel") {
                     onDismiss()
                 }
                 .keyboardShortcut(.cancelAction)
 
                 Spacer()
 
-                Button("Create") {
+                Button("sheet.create") {
                     guard let dev = Int(devicePort), dev > 0, dev <= 65535 else { return }
                     let trimmedUdid = udid.trimmingCharacters(in: .whitespaces)
 
@@ -249,7 +249,7 @@ struct MenuBarView: View {
                 } label: {
                     HStack {
                         Image(systemName: "plus.circle.fill")
-                        Text("New iproxy")
+                        Text("menu.new_proxy")
                         Spacer()
                         Text("\u{2318}N")
                             .font(.caption)
@@ -276,7 +276,7 @@ struct MenuBarView: View {
             Divider().padding(.horizontal, 8)
 
             // Section header
-            Text("Running Instances")
+            Text("menu.running_instances")
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, 12)
@@ -284,7 +284,7 @@ struct MenuBarView: View {
                 .padding(.bottom, 4)
 
             if proxyManager.instances.isEmpty {
-                Text("No iproxy instances")
+                Text("menu.no_instances")
                     .foregroundStyle(.tertiary)
                     .font(.caption)
                     .padding(.horizontal, 12)
@@ -301,7 +301,7 @@ struct MenuBarView: View {
                                 .font(.caption)
                                 .help(udid)
                         } else {
-                            Text("Any Device")
+                            Text("menu.any_device")
                                 .font(.caption)
                         }
                     }
@@ -322,7 +322,7 @@ struct MenuBarView: View {
             } label: {
                 HStack {
                     Image(systemName: "power")
-                    Text("Quit")
+                    Text("menu.quit")
                     Spacer()
                     Text("\u{2318}Q")
                         .font(.caption)

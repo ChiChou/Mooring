@@ -55,11 +55,11 @@ class IProxyManager: ObservableObject {
     }
 
     static var iproxyURL: URL? {
-        Bundle.main.resourceURL?.appendingPathComponent("usbmuxd/bin/iproxy")
+        Bundle.main.resourceURL?.appendingPathComponent("libimobiledevice/bin/iproxy")
     }
 
     static var ideviceIdURL: URL? {
-        Bundle.main.resourceURL?.appendingPathComponent("usbmuxd/bin/idevice_id")
+        Bundle.main.resourceURL?.appendingPathComponent("libimobiledevice/bin/idevice_id")
     }
 
     @Published var availableUDIDs: [String] = []

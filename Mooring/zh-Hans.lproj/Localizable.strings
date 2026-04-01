@@ -2,15 +2,15 @@
 "menu.new_proxy" = "新建代理";
 "menu.running_instances" = "运行中的实例";
 "menu.no_instances" = "没有运行中的实例";
+"menu.any_device" = "所有设备";
 "menu.quit" = "退出";
 
 /* Add Proxy Sheet */
 "sheet.title" = "新建 iproxy 实例";
-"sheet.source_port" = "源端口（设备）";
-"sheet.source_placeholder" = "例如 2222";
-"sheet.destination_port" = "目标端口（本地）";
-"sheet.destination_placeholder" = "例如 2222";
-"sheet.use_random_port" = "使用随机目标端口";
+"sheet.device_port" = "设备端口";
+"sheet.port_placeholder" = "例如 2222";
+"sheet.local_port" = "本地端口";
+"sheet.use_random_port" = "使用随机本地端口";
 "sheet.udid" = "UDID（可选）";
 "sheet.udid_placeholder" = "所有设备";
 "sheet.udid_no_devices" = "未发现设备";
