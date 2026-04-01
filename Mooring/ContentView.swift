@@ -6,6 +6,59 @@
 //
 
 import SwiftUI
+import AppKit
+
+struct ComboBox: NSViewRepresentable {
+    @Binding var text: String
+    var items: [String]
+    var placeholder: String
+
+    func makeNSView(context: Context) -> NSComboBox {
+        let combo = NSComboBox()
+        combo.placeholderString = placeholder
+        combo.usesDataSource = false
+        combo.completes = true
+        combo.delegate = context.coordinator
+        combo.target = context.coordinator
+        combo.action = #selector(Coordinator.comboBoxAction(_:))
+        return combo
+    }
+
+    func updateNSView(_ combo: NSComboBox, context: Context) {
+        if combo.stringValue != text {
+            combo.stringValue = text
+        }
+        combo.removeAllItems()
+        combo.addItems(withObjectValues: items)
+    }
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(text: $text)
+    }
+
+    class Coordinator: NSObject, NSComboBoxDelegate {
+        @Binding var text: String
+
+        init(text: Binding<String>) {
+            _text = text
+        }
+
+        func comboBoxSelectionDidChange(_ notification: Notification) {
+            guard let combo = notification.object as? NSComboBox,
+                  combo.indexOfSelectedItem >= 0 else { return }
+            text = combo.itemObjectValue(at: combo.indexOfSelectedItem) as? String ?? ""
+        }
+
+        @objc func comboBoxAction(_ sender: NSComboBox) {
+            text = sender.stringValue
+        }
+
+        func controlTextDidChange(_ obj: Notification) {
+            guard let combo = obj.object as? NSComboBox else { return }
+            text = combo.stringValue
+        }
+    }
+}
 
 struct MenuItemStyle: ViewModifier {
     @State private var isHovered = false
@@ -105,15 +158,12 @@ struct CreateProxyForm: View {
                 .toggleStyle(.checkbox)
                 .font(.caption)
 
-            HStack(spacing: 8) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("UDID (optional)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    TextField("All devices", text: $udid)
-                        .textFieldStyle(.roundedBorder)
-                        .focused($focusedField, equals: .udid)
-                }
+            VStack(alignment: .leading, spacing: 4) {
+                Text("UDID (optional)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                ComboBox(text: $udid, items: proxyManager.availableUDIDs, placeholder: "All devices")
+                    .frame(height: 24)
             }
 
             Picker("Connection", selection: $connectionType) {
@@ -156,6 +206,7 @@ struct CreateProxyForm: View {
         }
         .onAppear {
             focusedField = .devicePort
+            proxyManager.refreshDeviceList()
         }
     }
 }

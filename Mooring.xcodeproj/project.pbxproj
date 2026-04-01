@@ -244,10 +244,11 @@
 			name = "Bundle usbmuxd Tools";
 			outputPaths = (
 				"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/usbmuxd/bin/iproxy",
+				"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/usbmuxd/bin/idevice_id",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "set -euo pipefail\n\nCACHE_DIR=\"${DERIVED_FILE_DIR}/usbmuxd_bundle\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/usbmuxd\"\n\n# Fetch if not cached\nif [ ! -f \"$CACHE_DIR/bin/iproxy\" ]; then\n    \"${PROJECT_DIR}/Scripts/fetch_and_bundle.sh\" \"$CACHE_DIR\"\nfi\n\n# Copy to app bundle\nrm -rf \"$DEST\"\nmkdir -p \"$DEST\"\ncp -a \"$CACHE_DIR/bin\" \"$DEST/\"\ncp -a \"$CACHE_DIR/lib\" \"$DEST/\"\n\n# Copy license\ncp \"${PROJECT_DIR}/Scripts/LICENSES/LGPL-2.1.txt\" \"$DEST/\"\n\n# Codesign with same identity as parent project\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${EXPANDED_CODE_SIGN_IDENTITY}\" != \"-\" ]; then\n    for f in \"$DEST/bin\"/* \"$DEST/lib\"/*.dylib; do\n        codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --options runtime --timestamp \"$f\"\n    done\nfi\n";
+			shellScript = "set -euo pipefail\n\nCACHE_DIR=\"${DERIVED_FILE_DIR}/usbmuxd_bundle\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/usbmuxd\"\n\n# Fetch if not cached\nif [ ! -f \"$CACHE_DIR/bin/iproxy\" ] || [ ! -f \"$CACHE_DIR/bin/idevice_id\" ]; then\n    \"${PROJECT_DIR}/Scripts/fetch_and_bundle.sh\" \"$CACHE_DIR\"\nfi\n\n# Copy to app bundle\nrm -rf \"$DEST\"\nmkdir -p \"$DEST\"\ncp -a \"$CACHE_DIR/bin\" \"$DEST/\"\ncp -a \"$CACHE_DIR/lib\" \"$DEST/\"\n\n# Copy license\ncp \"${PROJECT_DIR}/Scripts/LICENSES/LGPL-2.1.txt\" \"$DEST/\"\n\n# Codesign with same identity as parent project\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${EXPANDED_CODE_SIGN_IDENTITY}\" != \"-\" ]; then\n    for f in \"$DEST/bin\"/* \"$DEST/lib\"/*.dylib; do\n        codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --options runtime --timestamp \"$f\"\n    done\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

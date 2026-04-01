@@ -58,6 +58,49 @@ class IProxyManager: ObservableObject {
         Bundle.main.resourceURL?.appendingPathComponent("usbmuxd/bin/iproxy")
     }
 
+    static var ideviceIdURL: URL? {
+        Bundle.main.resourceURL?.appendingPathComponent("usbmuxd/bin/idevice_id")
+    }
+
+    @Published var availableUDIDs: [String] = []
+
+    /// Run `idevice_id -l` to list connected device UDIDs.
+    func refreshDeviceList() {
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let url = Self.ideviceIdURL,
+                  FileManager.default.fileExists(atPath: url.path) else {
+                return
+            }
+
+            let task = Process()
+            task.executableURL = url
+            task.arguments = ["-l"]
+
+            let pipe = Pipe()
+            task.standardOutput = pipe
+            task.standardError = nil
+
+            do {
+                try task.run()
+                task.waitUntilExit()
+            } catch {
+                return
+            }
+
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            guard let output = String(data: data, encoding: .utf8) else { return }
+
+            let udids = output
+                .components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { !$0.isEmpty }
+
+            DispatchQueue.main.async {
+                self?.availableUDIDs = udids
+            }
+        }
+    }
+
     init() {
         refresh()
         timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
