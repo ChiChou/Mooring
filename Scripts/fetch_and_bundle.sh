@@ -76,7 +76,6 @@ mkdir -p "$BUNDLE_DIR/bin" "$BUNDLE_DIR/lib"
 
 # Collect binaries
 cp "$WORK_DIR/libusbmuxd-latest_macOS/usr/local/bin/iproxy"     "$BUNDLE_DIR/bin/"
-cp "$WORK_DIR/libusbmuxd-latest_macOS/usr/local/bin/inetcat"    "$BUNDLE_DIR/bin/"
 cp "$WORK_DIR/libimobiledevice-latest_macOS/usr/local/bin/idevice_id" "$BUNDLE_DIR/bin/"
 
 # Collect all non-static dylibs from each artifact

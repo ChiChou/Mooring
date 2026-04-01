@@ -40,6 +40,6 @@ Mooring bundles the following LGPL-2.1 licensed libraries from the libimobiledev
 
 - libplist
 - libimobiledevice-glue
-- libusbmuxd (includes `iproxy` and `inetcat`)
+- libusbmuxd (includes `iproxy`)
 
 The full license text is included in the app bundle at `Contents/Resources/usbmuxd/LGPL-2.1.txt`. Source code is available from the links above.
