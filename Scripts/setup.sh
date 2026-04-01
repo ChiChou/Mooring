@@ -1,11 +1,11 @@
 #!/bin/bash
 #
-# fetch_and_bundle.sh — Download latest nightly macOS builds from libimobiledevice
-# GitHub Actions and bundle them with patched load paths.
+# setup.sh — Download latest nightly macOS builds from libimobiledevice
+# GitHub Actions and prepare them for bundling.
 #
 # Dependencies: gh (GitHub CLI, authenticated), jq, tar, install_name_tool
 #
-# Usage: ./fetch_and_bundle.sh [BUNDLE_DIR]
+# Usage: ./setup.sh
 #
 # All dylib load paths are patched with install_name_tool to use
 # @executable_path/../lib/ so no DYLD_LIBRARY_PATH is needed at runtime.
@@ -15,7 +15,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BUNDLE_DIR="${1:-$SCRIPT_DIR/bundle}"
+BUNDLE_DIR="${SCRIPT_DIR}/../.cache/libimobiledevice"
 WORK_DIR="$(mktemp -d)"
 
 cleanup() { rm -rf "$WORK_DIR"; }

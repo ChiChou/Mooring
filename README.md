@@ -15,7 +15,7 @@ A macOS menu bar util for managing [iproxy](https://libimobiledevice.org/) insta
 
 ## Build from Source
 
-Mooring bundles iproxy by downloading the latest nightly builds from [libimobiledevice](https://github.com/libimobiledevice) GitHub Actions during the Xcode build phase. This requires a few dev tools on the build machine.
+Mooring bundles iproxy by downloading the latest nightly builds from [libimobiledevice](https://github.com/libimobiledevice) GitHub Actions. Developers must fetch the binaries before building.
 
 ### Dev Dependencies
 
@@ -30,9 +30,12 @@ Mooring bundles iproxy by downloading the latest nightly builds from [libimobile
 ```bash
 brew install gh jq
 gh auth login
+bash Scripts/setup.sh
 ```
 
-Then open `Mooring.xcodeproj` in Xcode and build. The first build will download the latest [libplist](https://github.com/libimobiledevice/libplist), [libimobiledevice-glue](https://github.com/libimobiledevice/libimobiledevice-glue), and [libusbmuxd](https://github.com/libimobiledevice/libusbmuxd) macOS artifacts. Subsequent builds use a cache in Xcode's derived data — clean the build folder to force a re-download.
+The setup script downloads the latest [libplist](https://github.com/libimobiledevice/libplist), [libimobiledevice-glue](https://github.com/libimobiledevice/libimobiledevice-glue), [libusbmuxd](https://github.com/libimobiledevice/libusbmuxd), and [libimobiledevice](https://github.com/libimobiledevice/libimobiledevice) macOS artifacts into `.cache/libimobiledevice/`. Re-run it to update to newer builds.
+
+Then open `Mooring.xcodeproj` in Xcode and build.
 
 ## Licenses
 

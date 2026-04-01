@@ -240,7 +240,8 @@
 			files = (
 			);
 			inputPaths = (
-				"${PROJECT_DIR}/Scripts/fetch_and_bundle.sh",
+				"${PROJECT_DIR}/.cache/libimobiledevice/bin/iproxy",
+				"${PROJECT_DIR}/.cache/libimobiledevice/bin/idevice_id",
 			);
 			name = "Bundle libimobiledevice Tools";
 			outputPaths = (
@@ -249,7 +250,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "set -euo pipefail\n\nCACHE_DIR=\"${DERIVED_FILE_DIR}/libimobiledevice_bundle\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/libimobiledevice\"\n\n# Fetch if not cached\nif [ ! -f \"$CACHE_DIR/bin/iproxy\" ] || [ ! -f \"$CACHE_DIR/bin/idevice_id\" ]; then\n    \"${PROJECT_DIR}/Scripts/fetch_and_bundle.sh\" \"$CACHE_DIR\"\nfi\n\n# Copy to app bundle\nrm -rf \"$DEST\"\nmkdir -p \"$DEST\"\ncp -a \"$CACHE_DIR/bin\" \"$DEST/\"\ncp -a \"$CACHE_DIR/lib\" \"$DEST/\"\n\n# Copy license\ncp \"${PROJECT_DIR}/Scripts/LICENSES/LGPL-2.1.txt\" \"$DEST/\"\n\n# Codesign with same identity as parent project\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${EXPANDED_CODE_SIGN_IDENTITY}\" != \"-\" ]; then\n    for f in \"$DEST/bin\"/* \"$DEST/lib\"/*.dylib; do\n        codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --options runtime --timestamp \"$f\"\n    done\nfi\n";
+			shellScript = "set -euo pipefail\n\nSRC=\"${PROJECT_DIR}/.cache/libimobiledevice\"\nDEST=\"${BUILT_PRODUCTS_DIR}/${CONTENTS_FOLDER_PATH}/Resources/libimobiledevice\"\n\nif [ ! -f \"$SRC/bin/iproxy\" ] || [ ! -f \"$SRC/bin/idevice_id\" ]; then\n    echo \"error: libimobiledevice binaries not found. Run Scripts/setup.sh first.\" >&2\n    exit 1\nfi\n\n# Copy to app bundle\nrm -rf \"$DEST\"\nmkdir -p \"$DEST\"\ncp -a \"$SRC/bin\" \"$DEST/\"\ncp -a \"$SRC/lib\" \"$DEST/\"\n\n# Copy license\ncp \"${PROJECT_DIR}/Scripts/LICENSES/LGPL-2.1.txt\" \"$DEST/\"\n\n# Codesign with same identity as parent project\nif [ -n \"${EXPANDED_CODE_SIGN_IDENTITY:-}\" ] && [ \"${EXPANDED_CODE_SIGN_IDENTITY}\" != \"-\" ]; then\n    for f in \"$DEST/bin\"/* \"$DEST/lib\"/*.dylib; do\n        codesign --force --sign \"${EXPANDED_CODE_SIGN_IDENTITY}\" --options runtime --timestamp \"$f\"\n    done\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
