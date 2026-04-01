@@ -11,5 +11,10 @@
 "sheet.destination_port" = "目标端口（本地）";
 "sheet.destination_placeholder" = "例如 2222";
 "sheet.use_random_port" = "使用随机目标端口";
+"sheet.udid" = "UDID（可选）";
+"sheet.udid_placeholder" = "所有设备";
+"sheet.udid_no_devices" = "未发现设备";
+"sheet.udid_refresh" = "刷新";
+"sheet.connection" = "连接方式";
 "sheet.cancel" = "取消";
 "sheet.create" = "创建";

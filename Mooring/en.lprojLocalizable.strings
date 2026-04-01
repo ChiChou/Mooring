@@ -11,5 +11,10 @@
 "sheet.destination_port" = "Destination (local)";
 "sheet.destination_placeholder" = "e.g. 2222";
 "sheet.use_random_port" = "Use random destination port";
+"sheet.udid" = "UDID (optional)";
+"sheet.udid_placeholder" = "All devices";
+"sheet.udid_no_devices" = "No devices found";
+"sheet.udid_refresh" = "Refresh";
+"sheet.connection" = "Connection";
 "sheet.cancel" = "Cancel";
 "sheet.create" = "Create";
