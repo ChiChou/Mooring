@@ -13,15 +13,50 @@ import Darwin
 import Darwin.POSIX
 #endif
 
+enum ConnectionType: String, CaseIterable, Identifiable {
+    case usb = "USB"
+    case network = "Network"
+
+    var id: String { rawValue }
+
+    var flag: String? {
+        switch self {
+        case .usb: return nil // default, no flag needed
+        case .network: return "-n"
+        }
+    }
+}
+
 struct IProxyInstance: Identifiable, Equatable {
     let id: Int32 // pid
-    let sourcePort: Int
-    let destinationPort: Int
+    let localPort: Int
+    let devicePort: Int
+    let udid: String?
+    let connectionType: ConnectionType
+    let sourceAddress: String?
 }
 
 class IProxyManager: ObservableObject {
     @Published var instances: [IProxyInstance] = []
     private var timer: Timer?
+
+    /// Grouped instances by UDID (nil UDID grouped as "Unknown Device")
+    var groupedByDevice: [(udid: String?, instances: [IProxyInstance])] {
+        let grouped = Dictionary(grouping: instances) { $0.udid }
+        // Sort: known UDIDs first (alphabetical), then unknown
+        return grouped.sorted { lhs, rhs in
+            switch (lhs.key, rhs.key) {
+            case (nil, nil): return false
+            case (nil, _): return false
+            case (_, nil): return true
+            case let (l?, r?): return l < r
+            }
+        }.map { (udid: $0.key, instances: $0.value) }
+    }
+
+    static var iproxyURL: URL? {
+        Bundle.main.resourceURL?.appendingPathComponent("usbmuxd/bin/iproxy")
+    }
 
     init() {
         refresh()
@@ -37,92 +72,120 @@ class IProxyManager: ObservableObject {
     func refresh() {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             var found: [IProxyInstance] = []
-            
-            // Get all running processes
+
             var name: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_ALL, 0]
             var length: size_t = 0
-            
-            // Get the size needed
-            guard sysctl(&name, UInt32(name.count), nil, &length, nil, 0) == 0 else {
-                return
-            }
-            
-            // Allocate buffer
+
+            guard sysctl(&name, UInt32(name.count), nil, &length, nil, 0) == 0 else { return }
+
             let count = length / MemoryLayout<kinfo_proc>.stride
             var procs = [kinfo_proc](repeating: kinfo_proc(), count: count)
-            
-            // Get the process list
-            guard sysctl(&name, UInt32(name.count), &procs, &length, nil, 0) == 0 else {
-                return
-            }
-            
+
+            guard sysctl(&name, UInt32(name.count), &procs, &length, nil, 0) == 0 else { return }
+
             let actualCount = length / MemoryLayout<kinfo_proc>.stride
-            
-            // Check each process
+
             for i in 0..<actualCount {
                 let proc = procs[i]
                 let pid = proc.kp_proc.p_pid
-                
-                // Get process arguments
+
                 if let arguments = self?.getProcessArguments(pid: pid),
-                   arguments.count >= 3,
-                   arguments[0].hasSuffix("iproxy") || arguments[0] == "iproxy" {
-                    
-                    // Parse: iproxy <source_port> <destination_port>
-                    if let sourcePort = Int(arguments[1]),
-                       let destPort = Int(arguments[2]) {
-                        found.append(IProxyInstance(id: pid, sourcePort: sourcePort, destinationPort: destPort))
-                    }
+                   !arguments.isEmpty,
+                   arguments[0].hasSuffix("iproxy") || arguments[0] == "iproxy",
+                   let instance = Self.parseArguments(pid: pid, arguments: Array(arguments.dropFirst())) {
+                    found.append(instance)
                 }
             }
-            
+
             DispatchQueue.main.async {
                 self?.instances = found
             }
         }
     }
-    
+
+    /// Parse iproxy CLI arguments into an IProxyInstance.
+    /// Handles: iproxy [-u UDID] [-n|-l] [-s ADDR] [-d] LOCAL:DEVICE [...]
+    /// Also handles legacy format: iproxy LOCAL DEVICE
+    static func parseArguments(pid: Int32, arguments: [String]) -> IProxyInstance? {
+        var udid: String?
+        var connectionType: ConnectionType = .usb
+        var sourceAddress: String?
+        var positional: [String] = []
+        var i = 0
+
+        while i < arguments.count {
+            let arg = arguments[i]
+            switch arg {
+            case "-u", "--udid":
+                i += 1
+                if i < arguments.count { udid = arguments[i] }
+            case "-n", "--network":
+                connectionType = .network
+            case "-l", "--local":
+                connectionType = .usb
+            case "-s", "--source":
+                i += 1
+                if i < arguments.count { sourceAddress = arguments[i] }
+            case "-d", "--debug", "-h", "--help", "-v", "--version":
+                break // skip flags
+            default:
+                if !arg.hasPrefix("-") {
+                    positional.append(arg)
+                }
+            }
+            i += 1
+        }
+
+        // Try new format: LOCAL:DEVICE
+        if let first = positional.first, first.contains(":") {
+            let parts = first.split(separator: ":", maxSplits: 1)
+            if parts.count == 2, let local = Int(parts[0]), let device = Int(parts[1]) {
+                return IProxyInstance(id: pid, localPort: local, devicePort: device,
+                                     udid: udid, connectionType: connectionType,
+                                     sourceAddress: sourceAddress)
+            }
+        }
+
+        // Legacy format: LOCAL DEVICE
+        if positional.count >= 2,
+           let local = Int(positional[0]),
+           let device = Int(positional[1]) {
+            return IProxyInstance(id: pid, localPort: local, devicePort: device,
+                                 udid: udid, connectionType: connectionType,
+                                 sourceAddress: sourceAddress)
+        }
+
+        return nil
+    }
+
     private func getProcessArguments(pid: pid_t) -> [String]? {
         var name: [Int32] = [CTL_KERN, KERN_PROCARGS2, pid]
         var length: size_t = 0
-        
-        // Get the size needed
+
         guard sysctl(&name, UInt32(name.count), nil, &length, nil, 0) == 0 else {
             return nil
         }
-        
-        // Allocate buffer
+
         var buffer = [UInt8](repeating: 0, count: length)
-        
-        // Get the arguments
+
         guard sysctl(&name, UInt32(name.count), &buffer, &length, nil, 0) == 0 else {
             return nil
         }
-        
-        // Parse the buffer
-        // First 4 bytes is argc (argument count)
+
         guard length >= MemoryLayout<Int32>.size else { return nil }
-        
+
         let argc = buffer.withUnsafeBytes { $0.load(as: Int32.self) }
         guard argc > 0 else { return nil }
-        
-        // Skip argc and find the start of arguments
+
         var offset = MemoryLayout<Int32>.size
-        
-        // Skip the executable path (null-terminated)
-        while offset < length && buffer[offset] != 0 {
-            offset += 1
-        }
-        
-        // Skip null bytes
-        while offset < length && buffer[offset] == 0 {
-            offset += 1
-        }
-        
-        // Parse arguments (null-separated strings)
+
+        // Skip the executable path
+        while offset < length && buffer[offset] != 0 { offset += 1 }
+        while offset < length && buffer[offset] == 0 { offset += 1 }
+
         var arguments: [String] = []
         var currentArg: [UInt8] = []
-        
+
         while offset < length && arguments.count < argc {
             if buffer[offset] == 0 {
                 if !currentArg.isEmpty {
@@ -136,12 +199,11 @@ class IProxyManager: ObservableObject {
             }
             offset += 1
         }
-        
-        // Add the last argument if it exists
+
         if !currentArg.isEmpty, let arg = String(bytes: currentArg, encoding: .utf8) {
             arguments.append(arg)
         }
-        
+
         return arguments.isEmpty ? nil : arguments
     }
 
@@ -153,86 +215,68 @@ class IProxyManager: ObservableObject {
     }
 
     private func findAvailablePort() -> Int? {
-        // Create a socket
         let sockfd = socket(AF_INET, SOCK_STREAM, 0)
-        guard sockfd >= 0 else {
-            return nil
-        }
-        
-        defer {
-            close(sockfd)
-        }
-        
-        // Enable address reuse
+        guard sockfd >= 0 else { return nil }
+        defer { close(sockfd) }
+
         var reuseAddr: Int32 = 1
         setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &reuseAddr, socklen_t(MemoryLayout<Int32>.size))
-        
-        // Bind to port 0 to let the OS assign an available port
+
         var addr = sockaddr_in()
         addr.sin_family = sa_family_t(AF_INET)
-        addr.sin_port = 0  // Port 0 means "assign me any available port"
+        addr.sin_port = 0
         addr.sin_addr.s_addr = inet_addr("127.0.0.1")
-        
+
         let bindResult = withUnsafePointer(to: &addr) { ptr in
             ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
                 bind(sockfd, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_in>.size))
             }
         }
-        
-        guard bindResult == 0 else {
-            return nil
-        }
-        
-        // Get the port that was assigned
+        guard bindResult == 0 else { return nil }
+
         var assignedAddr = sockaddr_in()
         var addrLen = socklen_t(MemoryLayout<sockaddr_in>.size)
-        
-        let getsocknameResult = withUnsafeMutablePointer(to: &assignedAddr) { ptr in
+
+        let result = withUnsafeMutablePointer(to: &assignedAddr) { ptr in
             ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
                 getsockname(sockfd, sockaddrPtr, &addrLen)
             }
         }
-        
-        guard getsocknameResult == 0 else {
-            return nil
-        }
-        
-        let port = Int(UInt16(bigEndian: assignedAddr.sin_port))
-        return port
+        guard result == 0 else { return nil }
+
+        return Int(UInt16(bigEndian: assignedAddr.sin_port))
     }
 
-    func create(sourcePort: Int, destinationPort: Int) {
+    func create(localPort: Int, devicePort: Int, udid: String? = nil,
+                connectionType: ConnectionType = .usb, sourceAddress: String? = nil) {
         DispatchQueue.global(qos: .userInitiated).async {
-            let task = Process()
-            
-            // Try common iproxy locations
-            let possiblePaths = [
-                "/usr/local/bin/iproxy",
-                "/opt/homebrew/bin/iproxy",
-                "/usr/bin/iproxy"
-            ]
-            
-            var iproxyPath: String?
-            for path in possiblePaths {
-                if FileManager.default.fileExists(atPath: path) {
-                    iproxyPath = path
-                    break
-                }
-            }
-            
-            guard let path = iproxyPath else {
-                print("iproxy not found in common locations")
+            guard let iproxyURL = Self.iproxyURL,
+                  FileManager.default.fileExists(atPath: iproxyURL.path) else {
+                print("iproxy not found in app bundle")
                 return
             }
-            
-            task.executableURL = URL(fileURLWithPath: path)
-            task.arguments = [String(sourcePort), String(destinationPort)]
+
+            let task = Process()
+            task.executableURL = iproxyURL
+
+            var args: [String] = []
+            if let udid = udid, !udid.isEmpty {
+                args += ["-u", udid]
+            }
+            if let flag = connectionType.flag {
+                args.append(flag)
+            }
+            if let addr = sourceAddress, !addr.isEmpty {
+                args += ["-s", addr]
+            }
+            args.append("\(localPort):\(devicePort)")
+
+            task.arguments = args
             task.standardOutput = nil
             task.standardError = nil
 
             do {
                 try task.run()
-                // Don't wait - let it run in background
             } catch {
                 print("Failed to launch iproxy: \(error)")
                 return
@@ -243,13 +287,14 @@ class IProxyManager: ObservableObject {
             }
         }
     }
-    
-    func createWithRandomPort(sourcePort: Int) {
+
+    func createWithRandomPort(devicePort: Int, udid: String? = nil,
+                              connectionType: ConnectionType = .usb, sourceAddress: String? = nil) {
         guard let availablePort = findAvailablePort() else {
             print("Failed to find available port")
             return
         }
-        
-        create(sourcePort: sourcePort, destinationPort: availablePort)
+        create(localPort: availablePort, devicePort: devicePort, udid: udid,
+               connectionType: connectionType, sourceAddress: sourceAddress)
     }
 }
