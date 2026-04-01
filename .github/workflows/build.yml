@@ -43,42 +43,7 @@ jobs:
           restore-keys: |
             xcode-build-${{ runner.os }}-
 
-      - name: Install certificate
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          P12_BASE64: ${{ secrets.CERTIFICATE_P12 }}
-          P12_PASSWORD: ${{ secrets.CERTIFICATE_PASSWORD }}
-        run: |
-          KEYCHAIN_PATH=$RUNNER_TEMP/build.keychain-db
-          security create-keychain -p "" $KEYCHAIN_PATH
-          security set-keychain-settings $KEYCHAIN_PATH
-          security unlock-keychain -p "" $KEYCHAIN_PATH
-          echo "$P12_BASE64" | base64 --decode > $RUNNER_TEMP/cert.p12
-          security import $RUNNER_TEMP/cert.p12 -k $KEYCHAIN_PATH \
-            -P "$P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/productsign
-          security set-key-partition-list -S apple-tool:,apple: -k "" $KEYCHAIN_PATH
-          security list-keychains -d user -s $KEYCHAIN_PATH login.keychain-db
-          echo "Installed identities:"
-          security find-identity -v -p codesigning $KEYCHAIN_PATH
-
-      - name: Build (Release)
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          xcodebuild build \
-            -project Mooring.xcodeproj \
-            -scheme Mooring \
-            -configuration Release \
-            -derivedDataPath build \
-            CODE_SIGN_IDENTITY="Developer ID Application" \
-            CODE_SIGN_STYLE=Manual \
-            DEVELOPMENT_TEAM="$APPLE_TEAM_ID" \
-            CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
-            OTHER_CODE_SIGN_FLAGS="--timestamp"
-
       - name: Build
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
         run: |
           xcodebuild build \
             -project Mooring.xcodeproj \
@@ -93,42 +58,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
           cd build/Build/Products/Release
-          /usr/bin/ditto -c -k --keepParent Mooring.app "$GITHUB_WORKSPACE/Mooring.zip"
-
-      - name: Notarize
-        if: startsWith(github.ref, 'refs/tags/v')
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-        run: |
-          set -e
-          xcrun notarytool submit Mooring.zip \
-            --apple-id "$APPLE_ID" \
-            --team-id "$APPLE_TEAM_ID" \
-            --password "$NOTARIZATION_PASSWORD" \
-            --wait \
-            --output-format json | tee /tmp/notarize.json
-          STATUS=$(cat /tmp/notarize.json | python3 -c "import sys,json; print(json.load(sys.stdin)['status'])")
-          if [ "$STATUS" != "Accepted" ]; then
-            ID=$(cat /tmp/notarize.json | python3 -c "import sys,json; print(json.load(sys.stdin)['id'])")
-            xcrun notarytool log "$ID" \
-              --apple-id "$APPLE_ID" \
-              --team-id "$APPLE_TEAM_ID" \
-              --password "$NOTARIZATION_PASSWORD"
-            exit 1
-          fi
-
-      - name: Staple and re-zip
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: |
-          cd build/Build/Products/Release
-          for i in 1 2 3; do
-            xcrun stapler staple Mooring.app && break
-            echo "Staple attempt $i failed, retrying in 15s..."
-            sleep 15
-          done
-          /usr/bin/ditto -c -k --keepParent Mooring.app "$GITHUB_WORKSPACE/Mooring.zip"
+          zip -r "$GITHUB_WORKSPACE/Mooring.zip" Mooring.app
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
