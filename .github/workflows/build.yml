@@ -11,7 +11,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
@@ -22,7 +22,7 @@ jobs:
 
       - name: Cache libimobiledevice tools
         id: cache-libs
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: .cache/libimobiledevice
           key: libimobiledevice-${{ hashFiles('Scripts/setup.sh') }}-${{ steps.date.outputs.date }}
@@ -36,7 +36,7 @@ jobs:
         run: bash Scripts/setup.sh
 
       - name: Cache Xcode derived data
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: build
           key: xcode-build-${{ runner.os }}-${{ hashFiles('**/*.swift', '**/*.xcodeproj/**', '*.xcworkspace/**') }}
@@ -62,7 +62,7 @@ jobs:
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: Mooring.zip
           generate_release_notes: true
